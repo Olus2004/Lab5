@@ -1,10 +1,6 @@
 ﻿using Lab5.Models;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Security.Claims;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using System.Xml.Linq;
 
 namespace Lab5
 {
@@ -219,7 +215,7 @@ namespace Lab5
                 Console.Write(errorMessage);
                 for (int i = 0; i < 3; i++)
                 {
-                    Thread.Sleep(1000); 
+                    Thread.Sleep(1000);
                     Console.Write(".");
                 }
                 Console.WriteLine();
@@ -356,7 +352,7 @@ namespace Lab5
                     continue;
                 }
 
-               
+
                 Console.Write("Email: ");
                 string email = Console.ReadLine()?.Trim();
                 if (email?.Length > 100 || dbContext.hocvien.Any(h => h.Email == email))
@@ -366,7 +362,7 @@ namespace Lab5
                     continue;
                 }
 
-                
+
                 var hocVien = new HocVien
                 {
                     MaHocVien = maHocVien,
@@ -909,7 +905,7 @@ namespace Lab5
                 return;
             }
 
-      
+
             var dangKy = new DangKy
             {
                 MaDangKy = maDangKy,
@@ -953,7 +949,7 @@ namespace Lab5
             }
 
             ThemDangKy(maDangKy, maHocVien, maLop, soTien, bienLai);
-   
+
         }
         public void CapNhatDangKy(string maDangKy, decimal? soTien = null, string bienLai = null, short? trangThai = null, string ghiChu = null)
         {
@@ -1097,7 +1093,7 @@ namespace Lab5
         {
             using var dbContext = new AppDbContext();
             var danhsach = from hv in dbContext.hocvien
-                           orderby hv.HoTen 
+                           orderby hv.HoTen
                            select hv;
             danhsach.ToList().ForEach(hv => Console.WriteLine(hv.HoTen));
         }
