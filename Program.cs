@@ -1,6 +1,5 @@
 ﻿using Lab5.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System;
 using System.Security.Claims;
 using System.Security.Cryptography.X509Certificates;
@@ -33,8 +32,7 @@ namespace Lab5
             TimKiemDangKy_TheoHocVien,
             XoaDangKy,
 
-            HienThiTatCaHocVien,
-            HienThiTatCaHocVienTheoID,
+            SapXepHocVienTheoHo,
             Thoat
         }
 
@@ -390,194 +388,84 @@ namespace Lab5
                 Console.WriteLine($"Đã thêm học viên {hoTen} thành công!");
             }
         }
-        public void CapNhatHocVien()
+        public bool CapNhatHocVien()
         {
-            using var dbContext = new AppDbContext();
-            int skipValue = 0;
-            int takeValue = 5;
-            bool view = true;
-            while ( view)
+            var dbContext = new AppDbContext();
+            try
             {
-                Console.Clear();
-                var viewHocVien = (from hv in dbContext.hocvien
-                                   orderby hv.MaHocVien
-                                   select hv).Skip(skipValue).Take(takeValue);
-                Console.WriteLine("------------------------------------------------------------------------");
-                viewHocVien.ToList().ForEach(hv => Console.WriteLine($"|Mã học viên: {hv.MaHocVien, 6}|Họ tên: {hv.HoTen, 20}|Ngày sinh: {hv.NgaySinh, 10}|Quê quán: {hv.QueQuan, 10}"));
-                Console.WriteLine("------------------------------------------------------------------------");
-                Console.WriteLine("\nNhập [1] để hiển thị thêm 5 học viên\nNhập [2] để quay lại 5 học viên\nNhập [0] để thoát\nHoặc Nhập mã học viên để cập nhật: ");
-                string userInput = Console.ReadLine()?.Trim();
-                if (userInput == "0")
+                Console.WriteLine("Nhập mã học viên cần cập nhật: ");
+                string maHocVien = Console.ReadLine()?.Trim();
+                if (string.IsNullOrEmpty(maHocVien))
                 {
-                    view = false;
-                    Console.WriteLine("Quay lại Menu.");
+                    Console.WriteLine("Mã học viên không được để trống.");
+                    return false;
                 }
-                else if (userInput == "1")
+
+                var hocVien = dbContext.hocvien.FirstOrDefault(hv => hv.MaHocVien == maHocVien);
+                if (hocVien == null)
                 {
-                    skipValue += 5;
-                    takeValue += 5;
+                    Console.WriteLine($"Không tìm thấy học viên với mã {maHocVien}.");
+                    return false;
                 }
-                else if (userInput == "2")
+
+                Console.WriteLine("Nhập thông tin cập nhật (để trống nếu không thay đổi):");
+
+                Console.WriteLine($"Họ tên (hiện tại: {hocVien.HoTen}): ");
+                string hoTen = Console.ReadLine()?.Trim();
+                if (!string.IsNullOrEmpty(hoTen)) hocVien.HoTen = hoTen;
+
+                Console.WriteLine($"Ngày sinh (hiện tại: {hocVien.NgaySinh:yyyy-MM-dd}, định dạng yyyy-MM-dd): ");
+                string ngaySinhInput = Console.ReadLine()?.Trim();
+                if (!string.IsNullOrEmpty(ngaySinhInput) && DateTime.TryParse(ngaySinhInput, out DateTime ngaySinh))
+                    hocVien.NgaySinh = ngaySinh;
+
+                Console.WriteLine($"Giới tính (0-Nam, 1-Nữ, hiện tại: {hocVien.GioiTinh}): ");
+                string gioiTinhInput = Console.ReadLine()?.Trim();
+                if (!string.IsNullOrEmpty(gioiTinhInput) && short.TryParse(gioiTinhInput, out short gioiTinh))
+                    hocVien.GioiTinh = gioiTinh;
+
+                Console.WriteLine($"Quê quán (hiện tại: {hocVien.QueQuan}): ");
+                string queQuan = Console.ReadLine()?.Trim();
+                if (!string.IsNullOrEmpty(queQuan)) hocVien.QueQuan = queQuan;
+
+                Console.WriteLine($"Địa chỉ (hiện tại: {hocVien.DiaChi}): ");
+                string diaChi = Console.ReadLine()?.Trim();
+                if (!string.IsNullOrEmpty(diaChi)) hocVien.DiaChi = diaChi;
+
+                Console.WriteLine($"Trình độ (hiện tại: {hocVien.TrinhDo}): ");
+                string trinhDo = Console.ReadLine()?.Trim();
+                if (!string.IsNullOrEmpty(trinhDo)) hocVien.TrinhDo = trinhDo;
+
+                Console.WriteLine($"Điện thoại (hiện tại: {hocVien.DienThoai}): ");
+                string dienThoai = Console.ReadLine()?.Trim();
+                if (!string.IsNullOrEmpty(dienThoai)) hocVien.DienThoai = dienThoai;
+
+                Console.WriteLine($"Email (hiện tại: {hocVien.Email}): ");
+                string email = Console.ReadLine()?.Trim();
+                if (!string.IsNullOrEmpty(email) && email != hocVien.Email)
                 {
-                    skipValue -= 5;
-                    takeValue -= 5;
-                    if (skipValue < 0)
+                    if (dbContext.hocvien.Any(hv => hv.Email == email && hv.MaHocVien != maHocVien))
                     {
-                        //Console.WriteLine("Không có dữ liệu trước đó để hiển thị.");
-                        skipValue = 0;
-                        takeValue = 5;
+                        Console.WriteLine("Email đã được sử dụng bởi học viên khác.");
+                        return false;
                     }
+                    hocVien.Email = email;
                 }
-                else
-                {
-                    if (!string.IsNullOrWhiteSpace(userInput))
-                    {
-                        var hocVien = (from hv in dbContext.hocvien
-                                       where hv.MaHocVien == userInput
-                                       select hv).FirstOrDefault();
-                        if (hocVien != null)
-                        {
-                            Console.WriteLine("Thông tin học viên cũ:");
-                            Console.WriteLine("----------------------------------------");
-                            Console.WriteLine($"Mã học viên: {hocVien.MaHocVien}");
-                            Console.WriteLine($"Họ tên: {hocVien.HoTen}");
-                            Console.WriteLine($"Ngày sinh: {(hocVien.NgaySinh.HasValue ? hocVien.NgaySinh.Value.ToString("dd/MM/yyyy") : "Chưa cung cấp")}");
-                            Console.WriteLine($"Giới tính: {(hocVien.GioiTinh switch
-                            {
-                                1 => "Nam",
-                                2 => "Nữ",
-                                3 => "Khác",
-                                _ => "Chưa cung cấp"
-                            })}");
-                            Console.WriteLine($"Quê quán: {hocVien.QueQuan ?? "Chưa cung cấp"}");
-                            Console.WriteLine($"Địa chỉ: {hocVien.DiaChi ?? "Chưa cung cấp"}");
-                            Console.WriteLine($"Trình độ: {hocVien.TrinhDo ?? "Chưa cung cấp"}");
-                            Console.WriteLine($"Điện thoại: {hocVien.DienThoai ?? "Chưa cung cấp"}");
-                            Console.WriteLine($"Email: {hocVien.Email ?? "Chưa cung cấp"}");
-                            Console.WriteLine($"Ngày đăng ký: {hocVien.NgayDangKy:dd/MM/yyyy}");
-                            Console.WriteLine($"Trạng thái: {(hocVien.TrangThai switch
-                            {
-                                1 => "Đang học",
-                                2 => "Tạm nghỉ",
-                                3 => "Nghỉ học",
-                                _ => "Không xác định"
-                            })}");
-                            Console.WriteLine("----------------------------------------");
-                            Console.WriteLine("\nNhập thông tin học viên mới:");
-                            Console.WriteLine("Nhập Họ tên học viên mới:");
-                            string newHoTen = Console.ReadLine()?.Trim();
-                            if (string.IsNullOrEmpty(newHoTen) || newHoTen.Length > 100)
-                            {
-                                Console.WriteLine("Họ tên không hợp lệ! Phải từ 1 đến 100 ký tự.");
-                                return;
-                            }
-                            hocVien.HoTen = newHoTen;
-                            Console.WriteLine("Nhập Ngày sinh (dd/MM/yyyy):");
-                            if (DateTime.TryParseExact(Console.ReadLine(), "dd/MM/yyyy", null, System.Globalization.DateTimeStyles.None, out DateTime ngaySinh))
-                            {
-                                hocVien.NgaySinh = ngaySinh;
-                            }
-                            else
-                            {
-                                Console.WriteLine("Ngày sinh không hợp lệ! Định dạng phải là dd/MM/yyyy.");
-                                hocVien.NgaySinh = null;
-                            }
-                            Console.WriteLine("Nhập Giới tính (1: Nam, 2: Nữ, 3: Khác):");
-                            if (short.TryParse(Console.ReadLine(), out short gioiTinh) && gioiTinh >= 1 && gioiTinh <= 3)
-                            {
-                                hocVien.GioiTinh = gioiTinh;
-                            }
-                            else
-                            {
-                                Console.WriteLine("Giới tính không hợp lệ! Chỉ nhập 1, 2 hoặc 3.");
-                                hocVien.GioiTinh = null;
-                            }
-                            Console.WriteLine("Nhập Quê quán:");
-                            string newQueQuan = Console.ReadLine()?.Trim();
-                            if (newQueQuan?.Length > 100)
-                            {
-                                Console.WriteLine("Quê quán không được vượt quá 100 ký tự!");
-                                newQueQuan = null;
-                            }
-                            hocVien.QueQuan = newQueQuan;
-                            Console.WriteLine("Nhập Địa chỉ:");
-                            string newDiaChi = Console.ReadLine()?.Trim();
-                            if (newDiaChi?.Length > 200)
-                            {
-                                Console.WriteLine("Địa chỉ không được vượt quá 200 ký tự!");
-                                newDiaChi = null;
-                            }
-                            hocVien.DiaChi = newDiaChi;
-                            Console.WriteLine("Nhập Trình độ:");
-                            string newTrinhDo = Console.ReadLine()?.Trim();
-                            if (newTrinhDo?.Length > 50)
-                            {
-                                Console.WriteLine("Trình độ không được vượt quá 50 ký tự!");
-                                newTrinhDo = null;
-                            }
-                            hocVien.TrinhDo = newTrinhDo;
-                            Console.WriteLine("Nhập Số điện thoại:");
-                            string newDienThoai = Console.ReadLine()?.Trim();
-                            if (newDienThoai?.Length > 15)
-                            {
-                                Console.WriteLine("Số điện thoại không được vượt quá 15 ký tự!");
-                                newDienThoai = null;
-                            }
-                            hocVien.DienThoai = newDienThoai;
 
-                            Console.WriteLine("Nhập Email:");
-                            string newEmail = Console.ReadLine()?.Trim();
-                            if (newEmail?.Length > 100)
-                            {
-                                Console.WriteLine("Email không được vượt quá 100 ký tự!");
-                                newEmail = null;
-                            }
-                            hocVien.Email = newEmail;
-                            Console.WriteLine("Nhập Ngày đăng ký (dd/MM/yyyy HH:mm:ss):");
-                            if (DateTime.TryParseExact(Console.ReadLine(), "dd/MM/yyyy HH:mm:ss", null, System.Globalization.DateTimeStyles.None, out DateTime ngayDangKy))
-                            {
-                                hocVien.NgayDangKy = ngayDangKy;
-                            }
-                            else
-                            {
-                                Console.WriteLine("Ngày đăng ký không hợp lệ! Định dạng phải là dd/MM/yyyy HH:mm:ss.");
-                                hocVien.NgayDangKy = DateTime.Now; // Gán mặc định là thời điểm hiện tại nếu nhập sai
-                            }
+                Console.WriteLine($"Trạng thái (1-Hoạt động, 0-Không hoạt động, hiện tại: {hocVien.TrangThai}): ");
+                string trangThaiInput = Console.ReadLine()?.Trim();
+                if (!string.IsNullOrEmpty(trangThaiInput) && short.TryParse(trangThaiInput, out short trangThai))
+                    hocVien.TrangThai = trangThai;
 
-                            // Nhập Trạng thái
-                            Console.WriteLine("Nhập Trạng thái (1: Đang học, 2: Tạm nghỉ, 3: Nghỉ học):");
-                            if (short.TryParse(Console.ReadLine(), out short trangThai) && trangThai >= 1 && trangThai <= 3)
-                            {
-                                hocVien.TrangThai = trangThai;
-                            }
-                            else
-                            {
-                                Console.WriteLine("Trạng thái không hợp lệ! Mặc định đặt là 1 (Đang học).");
-                                hocVien.TrangThai = 1;
-                            }
-
-                            Console.WriteLine("Đã nhập thông tin học viên thành công!");
-
-
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Không tìm thấy học viên với mã {userInput}.");
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine("Đầu vào không hợp lệ. Vui lòng nhập 0, 1 hoặc mã học viên.");
-
-                    }
-                    Console.WriteLine("Bạn có muốn tiếp tục không? Vui lòng nhập 0 (Không), 1(Có): ");
-                    if (Console.ReadLine()?.ToLower() != "1")
-                    {
-                        view = false;
-                    }
-                }
+                dbContext.SaveChanges();
+                Console.WriteLine("Cập nhật thông tin học viên thành công.");
+                return true;
             }
-            
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi khi cập nhật học viên: {ex.Message}");
+                return false;
+            }
         }
         public bool XoaHocVien_TheoID()
         {
@@ -1213,275 +1101,19 @@ namespace Lab5
                            select hv;
             danhsach.ToList().ForEach(hv => Console.WriteLine(hv.HoTen));
         }
-        public void HienThiTatCaHocVien()
+        public void HienThiHocVienTheoMaLop()
         {
-            using var dbContext = new AppDbContext();
-            int skipValue = 0;
-            int takeValue = 5;
-            bool view = true;
-            while (view)
+
+        }
+        public void HienThiMenu()
+        {
+            Console.WriteLine("===== MENU QUẢN LÝ =====");
+            foreach (var option in Enum.GetValues(typeof(MenuOption)))
             {
-                Console.Clear();
-                var viewHV = from hv in dbContext.hocvien
-                             orderby hv.MaHocVien
-                             select hv;
-                Console.WriteLine("---------------------------------------------------------------------------------------------------------");
-                viewHV.ToList().ForEach(hv => Console.WriteLine($"|Mã học viên: {hv.MaHocVien,6}|Họ tên: {hv.HoTen,20}|Ngày sinh: {hv.NgaySinh,10}|Quê quán: {hv.QueQuan,10}|"));
-                Console.WriteLine("---------------------------------------------------------------------------------------------------------");
-                Console.Write("\nNhập [0] để thoát\nHoặc Nhập mã học viên để xem chi tiết: ");
-                string userInput = Console.ReadLine()?.Trim();
-                if (userInput == "0")
-                {
-                    view = false;
-                    Console.WriteLine("Quay lại Menu.");
-                }
-                else
-                {
-                    if (!string.IsNullOrWhiteSpace(userInput))
-                    {
-                        var hocVien = (from hv in dbContext.hocvien
-                                       where hv.MaHocVien == userInput
-                                       select hv).FirstOrDefault();
-                        if (hocVien != null)
-                        {
-                            Console.WriteLine("\n----------------------------------------");
-                            Console.WriteLine($"Thông tin học viên: {hocVien.HoTen}");
-                            Console.WriteLine("----------------------------------------");
-                            Console.WriteLine($"Mã học viên: {hocVien.MaHocVien}");
-                            Console.WriteLine($"Họ tên: {hocVien.HoTen}");
-                            Console.WriteLine($"Ngày sinh: {(hocVien.NgaySinh.HasValue ? hocVien.NgaySinh.Value.ToString("dd/MM/yyyy") : "Chưa cung cấp")}");
-                            Console.WriteLine($"Giới tính: {(hocVien.GioiTinh switch
-                            {
-                                1 => "Nam",
-                                2 => "Nữ",
-                                3 => "Khác",
-                                _ => "Chưa cung cấp"
-                            })}");
-                            Console.WriteLine($"Quê quán: {hocVien.QueQuan ?? "Chưa cung cấp"}");
-                            Console.WriteLine($"Địa chỉ: {hocVien.DiaChi ?? "Chưa cung cấp"}");
-                            Console.WriteLine($"Trình độ: {hocVien.TrinhDo ?? "Chưa cung cấp"}");
-                            Console.WriteLine($"Điện thoại: {hocVien.DienThoai ?? "Chưa cung cấp"}");
-                            Console.WriteLine($"Email: {hocVien.Email ?? "Chưa cung cấp"}");
-                            Console.WriteLine($"Ngày đăng ký: {hocVien.NgayDangKy:dd/MM/yyyy}");
-                            Console.WriteLine($"Trạng thái: {(hocVien.TrangThai switch
-                            {
-                                1 => "Đang học",
-                                2 => "Tạm nghỉ",
-                                3 => "Nghỉ học",
-                                _ => "Không xác định"
-                            })}");
-                            Console.WriteLine("----------------------------------------");
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Không tìm thấy học viên với mã {userInput}.");
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine("Đầu vào không hợp lệ. Vui lòng nhập 0, 1 hoặc mã học viên.");
-
-                    }
-                    Console.WriteLine("Bạn có muốn tiếp tục không? Vui lòng nhập 0 (Không), 1(Có): ");
-                    if (Console.ReadLine()?.ToLower() != "1")
-                    {
-                        view = false;
-                    }
-                }
+                Console.WriteLine($"{(int)option}. {option}");
             }
+            Console.Write("Chọn chức năng: ");
         }
-        public void HienThiTatCaHocVienTheoID()
-        {
-            using var dbContext = new AppDbContext();
-            int skipValue = 0;
-            int takeValue = 5;
-            bool view = true;
-            while (view)
-            {
-                Console.Clear();
-                var viewHVLop = from idlop in dbContext.lophoc
-                                select idlop;
-                Console.WriteLine("--------------------------------------------------------------------------------------------------");
-                viewHVLop.ToList().ForEach(hvl => Console.WriteLine($"|Mã lớp: {hvl.MaLop, 5}|Tên lớp: {hvl.TenLop, 25}|Số học viên dự kiến:{hvl.SoHocVienDuKien, 3}|Số học viên thực tế:{hvl.SoHocVienThucTe, 3}|"));
-                Console.WriteLine("--------------------------------------------------------------------------------------------------");
-                Console.Write("\nNhập [0] để thoát\nHoặc Nhập mã lớp học để xem chi tiết: ");
-                string userInput = Console.ReadLine()?.Trim();
-                if (userInput == "0")
-                {
-                    view = false;
-                    Console.WriteLine("Quay lại Menu.");
-                }
-                else
-                {
-                    if (!string.IsNullOrWhiteSpace(userInput))
-                    {
-                        var dangki = from hv in dbContext.hocvien
-                                     join dk in dbContext.dangki on hv.MaHocVien equals dk.MaHocVien
-                                     where dk.MaLop == userInput
-                                     select new
-                                     {
-                                         MaHocVien = hv.MaHocVien,
-                                         TenHocVien = hv.HoTen,
-                                         NgaySinh = hv.NgaySinh, 
-                                         GioiTinh = hv.GioiTinh == 1 ? "Nam" : 
-                                                    hv.GioiTinh == 2 ? "Nữ" : "Khác",
-                                         QueQuan = hv.QueQuan ?? "Chưa cung cấp", 
-                                         DiaChi = hv.DiaChi ?? "Chưa cung cấp", 
-                                         DienThoai = hv.DienThoai ?? "Chưa cung cấp",
-                                         Email = hv.Email ?? "Chưa cung cấp",
-                                         NgayDangKy = dk.NgayDangKy, 
-                                         TrangThai = hv.TrangThai == 1 ? "Đang học" :
-                                                     hv.TrangThai == 2 ? "Tạm nghỉ" :
-                                                     hv.TrangThai == 3 ? "Nghỉ học" : "Không xác định"
-                                     };
-                        var dshv = dangki.ToList();
-                        if (dshv.Any())
-                        {
-                            Console.WriteLine("--------------------------------------------------------------------------------------------------");
-                            dshv.ToList().ForEach(hv => Console.WriteLine($"|Mã học viên: {hv.MaHocVien,6}|Họ tên: {hv.TenHocVien,20}|Ngày sinh: {hv.NgaySinh,10}|Quê quán: {hv.QueQuan,10}|Trạng thái: {hv.TrangThai}"));
-                            Console.WriteLine("--------------------------------------------------------------------------------------------------");
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Không tìm thấy học viên với mã lớp: {userInput}.");
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine("Đầu vào không hợp lệ. Vui lòng nhập 0, 1 hoặc mã lớp.");
-
-                    }
-                    Console.WriteLine("Bạn có muốn tiếp tục không? Vui lòng nhập 0 (Không), 1(Có): ");
-                    if (Console.ReadLine()?.ToLower() != "1")
-                    {
-                        view = false;
-                    }
-                }
-
-            }
-        }
-        public void DisplayMenu()
-        {
-            Console.Clear();
-            Console.WriteLine("===================================");
-            Console.WriteLine("             QUẢN LÝ               ");
-            Console.WriteLine("===================================");
-            Console.WriteLine("  1. Quản lý học viên");
-            Console.WriteLine("     1. Thêm học viên");
-            Console.WriteLine("     2. Cập nhật học viên");
-            Console.WriteLine("     3. Tìm kiếm học viên theo mã");
-            Console.WriteLine("     4. Xóa học viên theo mã");
-            Console.WriteLine("  2. Quản lý giáo viên");
-            Console.WriteLine("     5. Thêm giáo viên");
-            Console.WriteLine("     6. Cập nhật giáo viên");
-            Console.WriteLine("     7. Tìm kiếm giáo viên theo mã");
-            Console.WriteLine("     8. Xóa giáo viên theo mã");
-            Console.WriteLine("  3. Quản lý lớp học");
-            Console.WriteLine("     9. Thêm lớp học");
-            Console.WriteLine("     10. Cập nhật lớp học");
-            Console.WriteLine("     11. Tìm kiếm lớp học theo mã");
-            Console.WriteLine("     12. Xóa lớp học");
-            Console.WriteLine("  4. Quản lý đăng ký");
-            Console.WriteLine("     13. Thêm đăng ký");
-            Console.WriteLine("     14. Cập nhật đăng ký");
-            Console.WriteLine("     15. Tìm kiếm đăng ký theo học viên");
-            Console.WriteLine("     16. Xóa đăng ký");
-            Console.WriteLine("  5. Hiển thị");
-            Console.WriteLine("     17. Hiển thị tất cả học viên");
-            Console.WriteLine("     18. Hiển thị tất cả học viên theo mã lớp");
-            Console.WriteLine("     19. Thoát");
-            Console.WriteLine("===================================");
-            Console.Write("Nhập lựa chọn (1-18): ");
-        }
-        public void Run()
-        {
-            bool tiepTuc = true;
-            while (tiepTuc)
-            {
-                DisplayMenu();
-                if (int.TryParse(Console.ReadLine(), out int luaChon) &&
-                    Enum.IsDefined(typeof(MenuOption), luaChon))
-                {
-                    MenuOption option = (MenuOption)luaChon;
-                    Console.Clear();
-
-                    switch (option)
-                    {
-                        case MenuOption.ThemHocVien:
-                            ThemHocVien();
-                            break;
-                        case MenuOption.CapNhatHocVien:
-                            CapNhatHocVien();
-                            break;
-                        case MenuOption.TimKiemHocVien_MaHocVien:
-                            TimKiemHocVien_MaHocVien();
-                            break;
-                        case MenuOption.XoaHocVien_TheoID:
-                            XoaHocVien_TheoID();
-                            break;
-                        case MenuOption.ThemGiaoVien:
-                            ThemGiaoVien();
-                            break;
-                        case MenuOption.CapNhatGiaoVien:
-                            CapNhatGiaoVien();
-                            break;
-                        case MenuOption.TimKiemGiaoVien_MaGiaoVien:
-                            TimKiemGiaoVien_MaGiaoVien();
-                            break;
-                        case MenuOption.XoaGiaoVien_TheoID:
-                            XoaGiaoVien_TheoID();
-                            break;
-                        case MenuOption.ThemLopHoc:
-                            ThemLopHoc();
-                            break;
-                        case MenuOption.CapNhatLopHoc:
-                            CapNhatLopHoc();
-                            break;
-                        case MenuOption.TimKiemLopHoc_MaLop:
-                            TimKiemLopHoc_MaLop();
-                            break;
-                        case MenuOption.XoaLopHoc:
-                            XoaLopHoc();
-                            break;
-                        case MenuOption.ThemDangKy:
-                            input_ThemDangKi();
-                            break;
-                        case MenuOption.CapNhatDangKy:
-                            input_CapNhatDangKy();
-                            break;
-                        case MenuOption.TimKiemDangKy_TheoHocVien:
-                            input_TimKiemDangKy_TheoHocVien();
-                            break;
-                        case MenuOption.XoaDangKy:
-                            input_XoaDangKy();
-                            break;
-                        case MenuOption.HienThiTatCaHocVien:
-                            HienThiTatCaHocVien();
-                            break;
-                        case MenuOption.HienThiTatCaHocVienTheoID:
-                            HienThiTatCaHocVienTheoID();
-                            break;
-                        case MenuOption.Thoat:
-                            tiepTuc = false;
-                            Console.WriteLine("Đã thoát chương trình. Nhấn phím bất kỳ để đóng.");
-                            Console.ReadKey();
-                            break;
-                    }
-                    if (option != MenuOption.Thoat)
-                    {
-                        Console.WriteLine("\nNhấn phím bất kỳ để tiếp tục...");
-                        Console.ReadKey();
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("Lựa chọn không hợp lệ. Vui lòng chọn từ 1 đến 18.");
-                    Console.WriteLine("Nhấn phím bất kỳ để thử lại...");
-                    Console.ReadKey();
-                }
-            }
-        }
-
         static void Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
@@ -1510,7 +1142,89 @@ namespace Lab5
             //program.SapXepHocVienTheoHo();
             //program.HienThiHocVienTheoMaLop()
 
-            program.Run();
+            Console.WriteLine("===== MENU QUẢN LÝ =====");
+            foreach (var option in Enum.GetValues(typeof(MenuOption)))
+            {
+                Console.WriteLine($"{(int)option}. {option}");
+            }
+            Console.Write("Chọn chức năng: ");
+
+            bool tiepTuc = true;
+            while (tiepTuc)
+            {
+                if (int.TryParse(Console.ReadLine(), out int luaChon) &&
+                    Enum.IsDefined(typeof(MenuOption), luaChon))
+                {
+                    MenuOption option = (MenuOption)luaChon;
+
+                    switch (option)
+                    {
+                        case MenuOption.ThemHocVien:
+                            program.ThemHocVien();
+                            break;
+                        case MenuOption.CapNhatHocVien:
+                            program.CapNhatHocVien();
+                            break;
+                        case MenuOption.TimKiemHocVien_MaHocVien:
+                            program.TimKiemHocVien_MaHocVien();
+                            break;
+                        case MenuOption.XoaHocVien_TheoID:
+                            program.XoaHocVien_TheoID();
+                            break;
+
+                        case MenuOption.ThemGiaoVien:
+                            program.ThemGiaoVien();
+                            break;
+                        case MenuOption.CapNhatGiaoVien:
+                            program.CapNhatGiaoVien();
+                            break;
+                        case MenuOption.XoaGiaoVien_TheoID:
+                            program.XoaGiaoVien_TheoID();
+                            break;
+                        case MenuOption.TimKiemGiaoVien_MaGiaoVien:
+                            program.TimKiemGiaoVien_MaGiaoVien();
+                            break;
+
+                        case MenuOption.ThemLopHoc:
+                            program.ThemLopHoc();
+                            break;
+                        case MenuOption.CapNhatLopHoc:
+                            program.CapNhatLopHoc();
+                            break;
+                        case MenuOption.TimKiemLopHoc_MaLop:
+                            program.TimKiemLopHoc_MaLop();
+                            break;
+                        case MenuOption.XoaLopHoc:
+                            program.XoaLopHoc();
+                            break;
+
+                        case MenuOption.ThemDangKy:
+                            program.input_ThemDangKi();
+                            break;
+                        case MenuOption.CapNhatDangKy:
+                            program.input_CapNhatDangKy();
+                            break;
+                        case MenuOption.TimKiemDangKy_TheoHocVien:
+                            program.input_TimKiemDangKy_TheoHocVien();
+                            break;
+                        case MenuOption.XoaDangKy:
+                            program.input_XoaDangKy();
+                            break;
+
+                        case MenuOption.SapXepHocVienTheoHo:
+                            program.SapXepHocVienTheoHo();
+                            break;
+                        case MenuOption.Thoat:
+                            tiepTuc = false;
+                            Console.WriteLine("Đã thoát chương trình.");
+                            break;
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Lựa chọn không hợp lệ. Vui lòng thử lại.");
+                }
+            }
         }
     }
 }
